@@ -119,12 +119,11 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Cabecera
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Column(
+                    // Cabecera responsiva
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isMobile = constraints.maxWidth < 600;
+                        final titleWidget = Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
@@ -146,8 +145,9 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                               ),
                             ),
                           ],
-                        ),
-                        Wrap(
+                        );
+
+                        final actionsWidget = Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           crossAxisAlignment: WrapCrossAlignment.center,
@@ -201,8 +201,28 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                               ),
                             ),
                           ],
-                        ),
-                      ],
+                        );
+
+                        if (isMobile) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              titleWidget,
+                              const SizedBox(height: 12),
+                              actionsWidget,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            titleWidget,
+                            actionsWidget,
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 
