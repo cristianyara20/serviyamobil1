@@ -181,19 +181,21 @@ class _PqrsScreenState extends ConsumerState<PqrsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Column(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      final titleWidget = const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('PANEL DE GESTION', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                           SizedBox(height: 2),
                           Text('PQRS', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                         ],
-                      ),
-                      Wrap(
+                      );
+
+                      final actionsWidget = Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           if (!_showForm)
@@ -240,8 +242,28 @@ class _PqrsScreenState extends ConsumerState<PqrsScreen> {
                             label: Text(_showForm ? 'Ver Mis PQRS' : '+ Nueva PQRS', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                           ),
                         ],
-                      ),
-                    ],
+                      );
+
+                      if (isMobile) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            titleWidget,
+                            const SizedBox(height: 12),
+                            actionsWidget,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          titleWidget,
+                          actionsWidget,
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
