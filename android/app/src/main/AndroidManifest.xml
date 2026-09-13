@@ -1,5 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Permiso de red para comunicar la app con la API Go y Supabase -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    
+    <!-- Permiso para acceder al sensor físico de la cámara del dispositivo móvil -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    
+    <!-- Permisos para leer imágenes desde la galería del dispositivo (Android 12 o inferior y Android 13+) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
     <application
         android:label="serviya_app"
         android:name="${applicationName}"
