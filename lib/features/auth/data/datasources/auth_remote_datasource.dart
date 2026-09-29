@@ -1,10 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../config/env.dart';
 import '../../domain/models/user_entity.dart';
 
 class AuthRemoteDataSource {
   final SupabaseClient _supabase;
+  final Dio? _dio;
 
-  AuthRemoteDataSource(this._supabase);
+  AuthRemoteDataSource(this._supabase, [this._dio]);
+
 
   Future<UserEntity?> fetchUserProfile(String authId, {String? email}) async {
     // 1. Intentar con el esquema seguridad (fuente principal)
@@ -50,21 +54,30 @@ class AuthRemoteDataSource {
     return null;
   }
 
+  /// Método de autenticación en la fuente remota de Auth.
+  /// 
+  /// 1. Envía credenciales a Supabase Auth.
+  /// 2. Si la autenticación es exitosa, emite la sesión con el Token JWT (`accessToken`).
+  /// 3. Obtiene el perfil de negocio asociado en el esquema `seguridad.usuarios`.
   Future<UserEntity> signInWithPassword({
     required String email,
     required String password,
   }) async {
+    // 1. Envía las credenciales cifradas al motor de Supabase Auth
     final response = await _supabase.auth.signInWithPassword(
       email: email,
       password: password,
     );
 
+    // 2. Si la autenticación es correcta, response.session contiene:
+    //    - accessToken: Token JWT firmado digitalmente utilizado para peticiones a la API Go.
+    //    - refreshToken: Token para renovar la sesión sin volver a pedir contraseña.
     final user = response.user;
     if (user == null) {
       throw const AuthException('No se pudo autenticar el usuario.');
     }
 
-    // Obtener perfil real desde seguridad.usuarios (donde esta el rol real)
+    // 3. Obtener perfil real desde seguridad.usuarios (donde está el rol de negocio del usuario)
     final userProfile = await fetchUserProfile(user.id, email: user.email);
     if (userProfile == null) {
       throw 'No se encontró el perfil del usuario en la base de datos.';
@@ -92,51 +105,54 @@ class AuthRemoteDataSource {
       }
     }
 
-    final res = await _supabase.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'nombre': nombre,
-        'apellido': apellido,
-        if (validDate != null) 'fecha_nacimiento': validDate,
-        'rol': 'usuario',
-      },
-    );
+    final payload = {
+      'correo': email.trim().toLowerCase(),
+      'password': password,
+      'nombre': nombre.trim(),
+      'apellido': apellido.trim(),
+      'fecha_nacimiento': validDate ?? '',
+      'rol': 'usuario',
+    };
 
-    final user = res.user;
-    if (user != null) {
-      try {
-        final existing = await _supabase
-            .schema('seguridad')
-            .from('usuarios')
-            .select('id_usuario')
-            .eq('auth_id', user.id)
-            .maybeSingle();
+    try {
+      final client = _dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: Env.apiBaseUrl,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 15),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+            ),
+          );
 
-        if (existing == null) {
-          final inserted = await _supabase
-              .schema('seguridad')
-              .from('usuarios')
-              .insert({
-                'auth_id': user.id,
-                'correo': email,
-                'nombre': nombre,
-                'apellido': apellido,
-                'rol': 'usuario',
-                if (validDate != null) 'fecha_nacimiento': validDate,
-              })
-              .select('id_usuario')
-              .single();
+      final response = await client.post(
+        '/auth/register',
+        data: payload,
+      );
 
-          final idUsuario = inserted['id_usuario'] as int?;
-          if (idUsuario != null) {
-            await _supabase.schema('gestion').from('clientes').upsert({
-              'id_cliente': idUsuario,
-              'auth_id': user.id,
-            });
-          }
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        String errorMsg = 'Error al registrar el usuario';
+        if (response.data is Map) {
+          final data = response.data as Map;
+          errorMsg = data['error'] ?? data['detalle'] ?? errorMsg;
         }
-      } catch (_) {}
+        throw Exception(errorMsg);
+      }
+    } on DioException catch (e) {
+      String errorMessage = 'Error al registrar el usuario';
+      if (e.response?.data != null && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        errorMessage = data['error'] ?? data['detalle'] ?? errorMessage;
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        errorMessage = e.message!;
+      }
+      throw Exception(errorMessage);
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception(e.toString());
     }
   }
 
