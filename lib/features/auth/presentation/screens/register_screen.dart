@@ -96,8 +96,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
+    } else if (!success && mounted) {
+      final error = ref.read(authControllerProvider).error;
+      final errorMsg = error?.toString().replaceAll('Exception: ', '') ?? 'Error al registrar el usuario';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
