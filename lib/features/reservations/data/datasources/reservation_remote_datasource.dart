@@ -149,6 +149,8 @@ class ReservationRemoteDataSource {
     }
   }
 
+  /// Registra una nueva reserva enviando los datos a la API REST en Go.
+  /// En caso de indisponibilidad temporal de la API, cuenta con fallback resiliente hacia Supabase.
   Future<ReservationEntity> createReservation({
     required int idServicio,
     required String direccion,
@@ -168,35 +170,88 @@ class ReservationRemoteDataSource {
       'direccion': direccion,
       'descripcion': descripcion,
       'fecha_agenda': fechaAgenda.toUtc().toIso8601String(),
-      'estado_reserva': 'pendiente',
     };
 
-    final response = await _supabase
-        .schema('gestion')
-        .from('reservas')
-        .insert(payload)
-        .select('*')
-        .single();
+    // 1. Enviar la petición HTTP POST a la API REST de Go: /reservas
+    try {
+      final response = await _dio.post(
+        '/reservas',
+        data: payload,
+      );
 
-    return ReservationEntity.fromJson(response);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is Map<String, dynamic>) {
+          return ReservationEntity.fromJson(response.data as Map<String, dynamic>);
+        }
+      }
+    } on DioException catch (e) {
+      // Si la API retornó un error de validación (400, etc.), lanzar el mensaje de negocio
+      if (e.response != null && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        final errorMsg = data['error'] ?? data['detalle'] ?? e.message;
+        throw errorMsg.toString();
+      }
+      // Si es un error de conectividad (API apagada o iniciando), continuar al fallback
+    } catch (_) {
+      // Continuar al fallback de contingencia
+    }
+
+    // 2. Fallback resiliente: Inserción directa en la base de datos Supabase
+    try {
+      final fallbackPayload = {
+        ...payload,
+        'estado_reserva': 'pendiente',
+      };
+
+      final response = await _supabase
+          .schema('gestion')
+          .from('reservas')
+          .insert(fallbackPayload)
+          .select('*')
+          .single();
+
+      return ReservationEntity.fromJson(response);
+    } catch (e) {
+      try {
+        final fallbackPayload = {
+          ...payload,
+          'estado_reserva': 'pendiente',
+        };
+        final response = await _supabase
+            .from('reservas')
+            .insert(fallbackPayload)
+            .select('*')
+            .single();
+
+        return ReservationEntity.fromJson(response);
+      } catch (_) {
+        throw 'No se pudo crear la reserva: $e';
+      }
+    }
   }
 
+  /// Cancela una reserva existente utilizando el método HTTP PUT en la API de Go.
+  /// Incluye validación de pertenencia enviando el `id_cliente` en el cuerpo de la solicitud.
   Future<bool> cancelReservation(int idReserva) async {
     // 1. Intentar primero con la API de Go: PUT /reservas/:id/cancelar
     final clienteId = await _resolveClienteId();
     if (clienteId != null) {
       try {
+        // Petición HTTP PUT: Actualización de estado en el backend
         final response = await _dio.put(
           '/reservas/$idReserva/cancelar',
           data: {'id_cliente': clienteId},
         );
+        // Retorna true si el backend Go confirmó la cancelación (200 OK)
         if (response.statusCode == 200) {
           return true;
         }
-      } catch (_) {}
+      } catch (_) {
+        // En caso de falla de red en el microservicio Go, procede al fallback
+      }
     }
 
-    // 2. Fallback: actualizar directamente en Supabase si la API de Go no responde
+    // 2. Fallback resiliente: actualizar directamente en la base de datos Supabase
     try {
       await _supabase
           .schema('gestion')
