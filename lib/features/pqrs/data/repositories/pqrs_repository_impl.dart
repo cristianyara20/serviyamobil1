@@ -1,11 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/network/supabase_client.dart';
 import '../../domain/models/pqrs_entity.dart';
 import '../../domain/repositories/i_pqrs_repository.dart';
 import '../datasources/pqrs_remote_datasource.dart';
 
 final pqrsRemoteDataSourceProvider = Provider<PqrsRemoteDataSource>((ref) {
-  return PqrsRemoteDataSource(ref.watch(supabaseClientProvider));
+  return PqrsRemoteDataSource(
+    ref.watch(supabaseClientProvider),
+    ref.watch(apiClientProvider),
+  );
 });
 
 final pqrsRepositoryProvider = Provider<IPqrsRepository>((ref) {
