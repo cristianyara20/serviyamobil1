@@ -11,18 +11,22 @@ import 'features/home/presentation/screens/welcome_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Cargar variables de entorno (.env)
+  // 1. Cargar variables de entorno (.env) si existe
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    debugPrint('Aviso: archivo .env no cargado o usando variables de entorno: $e');
+    debugPrint('Aviso: .env no cargado en este entorno (usando variables fallback): $e');
   }
 
-  // 2. Inicializar Supabase Client
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    anonKey: Env.supabaseAnonKey,
-  );
+  // 2. Inicializar Supabase Client con manejo de excepciones
+  try {
+    await Supabase.initialize(
+      url: Env.supabaseUrl,
+      anonKey: Env.supabaseAnonKey,
+    );
+  } catch (e) {
+    debugPrint('Aviso inicializando Supabase: $e');
+  }
 
   runApp(
     const ProviderScope(
