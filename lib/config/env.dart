@@ -1,63 +1,48 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'config/env.dart';
-import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/controllers/auth_controller.dart';
-import 'features/home/presentation/screens/home_dashboard_screen.dart';
-import 'features/home/presentation/screens/welcome_screen.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. Cargar variables de entorno (.env)
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint('Aviso: archivo .env no cargado o usando variables de entorno: $e');
+class Env {
+  static String get supabaseUrl {
+    final envVal = dotenv.env['SUPABASE_URL'] ?? dotenv.env['NEXT_PUBLIC_SUPABASE_URL'];
+    if (envVal != null && envVal.isNotEmpty) return envVal;
+    const defineVal = String.fromEnvironment('SUPABASE_URL');
+    if (defineVal.isNotEmpty) return defineVal;
+    const defineNextVal = String.fromEnvironment('NEXT_PUBLIC_SUPABASE_URL');
+    if (defineNextVal.isNotEmpty) return defineNextVal;
+    return 'https://lvxhporsajorgckeisna.supabase.co';
   }
 
-  // 2. Inicializar Supabase Client
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    anonKey: Env.supabaseAnonKey,
-  );
+  static String get supabaseAnonKey {
+    final envVal = dotenv.env['SUPABASE_ANON_KEY'] ?? dotenv.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+    if (envVal != null && envVal.isNotEmpty) return envVal;
+    const defineVal = String.fromEnvironment('SUPABASE_ANON_KEY');
+    if (defineVal.isNotEmpty) return defineVal;
+    const defineNextVal = String.fromEnvironment('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    if (defineNextVal.isNotEmpty) return defineNextVal;
+    return '';
+  }
 
-  runApp(
-    const ProviderScope(
-      child: ServiYaApp(),
-    ),
-  );
-}
+  static String get supabaseServiceRoleKey {
+    final envVal = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? dotenv.env['NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY'];
+    if (envVal != null && envVal.isNotEmpty) return envVal;
+    const defineVal = String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
+    if (defineVal.isNotEmpty) return defineVal;
+    const defineNextVal = String.fromEnvironment('NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY');
+    if (defineNextVal.isNotEmpty) return defineNextVal;
+    return '';
+  }
 
-class ServiYaApp extends ConsumerWidget {
-  const ServiYaApp({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(currentUserProvider);
-
-    return MaterialApp(
-      title: 'ServiYa',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: authState.when(
-        data: (user) {
-          if (user != null) {
-            return HomeDashboardScreen(user: user);
-          }
-          return const WelcomeScreen();
-        },
-        loading: () => const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFFF97316),
-            ),
-          ),
-        ),
-        error: (error, stack) => const WelcomeScreen(),
-      ),
-    );
+  static String get apiBaseUrl {
+    final envUrl = dotenv.env['API_BASE_URL'] ??
+        dotenv.env['NEXT_PUBLIC_REPORTES_API_URL'] ??
+        const String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (envUrl.isNotEmpty) {
+      return envUrl;
+    }
+    if (!kIsWeb && Platform.isAndroid) {
+      return 'http://10.0.2.2:8080/api/v1';
+    }
+    return 'https://apiserviya.onrender.com/api/v1';
   }
 }
