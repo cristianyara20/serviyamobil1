@@ -240,8 +240,9 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
                 rol: rol,
                 fechaNacimiento: fecha,
               );
+          if (!ctx.mounted) return;
+          Navigator.pop(ctx);
           if (mounted) {
-            Navigator.pop(ctx);
             messenger.showSnackBar(SnackBar(
               content: Text(ok ? '✅ Usuario creado exitosamente' : '❌ Error al crear usuario'),
               backgroundColor: ok ? AppColors.success : AppColors.error,
@@ -270,8 +271,9 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
                 rol: rol,
                 fechaNacimiento: fecha,
               );
+          if (!ctx.mounted) return;
+          Navigator.pop(ctx);
           if (mounted) {
-            Navigator.pop(ctx);
             messenger.showSnackBar(SnackBar(
               content: Text(ok ? '✅ Usuario actualizado' : '❌ Error al actualizar'),
               backgroundColor: ok ? AppColors.success : AppColors.error,
