@@ -23,7 +23,6 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      # Instalar y configurar Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -33,7 +32,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Escaneo de SonarQube con parámetros directos
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.4.0
         env:
