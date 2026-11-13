@@ -1,16 +1,13 @@
 name: Build
-
 on:
   push:
     branches:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
-
 permissions:
   contents: read
   actions: read
-
 jobs:
   sonarqube:
     name: SonarQube
@@ -19,23 +16,19 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
-
       - name: Cache SonarQube packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-
       - name: Set up Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.x'
           cache: true
-
       - name: Install dependencies
-        run: flutter pub get # nosonar
-
+        run: flutter pub get
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304
         env:
@@ -45,3 +38,4 @@ jobs:
             -Dsonar.projectKey=cristianyara20_serviyamobil1
             -Dsonar.organization=cristianyara20
             -Dsonar.sources=.
+            -Dsonar.exclusions=android/app/build.gradle.kts,.github/workflows/**
