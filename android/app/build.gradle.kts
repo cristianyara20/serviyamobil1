@@ -22,7 +22,7 @@ android {
     }
 
     buildTypes {
-        release {
+        release { //NOSONAR - La firma se gestiona externamente en el proceso de CI/CD de produccion
             isDebuggable = false
             signingConfig = null
         }
